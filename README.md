@@ -6,7 +6,7 @@ Bootstrap
 ## Resultado Final
 
 Pueder visualizar el resultado final en la dirección: 
-[simplecrudreact.netlify.com]
+[https://simplecrudreact.netlify.com/]
 
 ## Available Scripts
 
