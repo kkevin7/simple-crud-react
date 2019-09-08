@@ -1,15 +1,19 @@
 import React, { Component } from "react";
 import db from "./../config/FirestoreConfig";
-import { Table, Button, Row, Col, InputGroup, Input } from "reactstrap";
+import { Table, Button, Row, Col, InputGroup, Input, Fade } from "reactstrap";
 
 export class Todos extends Component {
   state = {
     items: [],
-    inputValue: ""
+    inputValue: "",
+    edit: false,
+    id: "",
+    fadeIn: false, 
+    message: ""
   };
 
   componentDidMount() {
-    db.collection("todos")
+    db.collection("todos").orderBy("item", "desc")
       .onSnapshot(
         snapShots => {
           this.setState({
@@ -31,15 +35,78 @@ export class Todos extends Component {
   };
 
   action = () => {
-      const {inputValue} = this.state;
+      const {inputValue, edit} = this.state;
+      !edit ?
       db.collection('todos').add(
           { item: inputValue}
       ).then( () => {
+        this.message('Registro Agregado');
           console.log('Agregado')
+            this.setState({
+                inputValue: ""
+            })
       }).catch( () =>{
           console.log('Error')
+          this.message('Error al agregar');
+      }) :
+      this.update()
+  }
+
+  getToDo = (id) => {
+      let docRef = db.collection('todos').doc(id);
+      docRef.get().then((doc) => {
+          if(doc.exists){
+              this.setState({
+                  inputValue: doc.data().item,
+                  edit: true,
+                  id: doc.id
+              })
+          }else{
+              console.log("El documento no existe");
+          }
+      }).catch((err) =>{
+          console.log(err)
+         
+      });
+  }
+
+  update = () =>{
+      const {id, inputValue} = this.state;
+      db.collection('todos').doc(id).update({
+          item: inputValue
+      }).then(( )=>{
+          console.log("Registro actualizado");
+          this.setState({
+              edit: false,
+              inputValue: ""
+          });
+          this.message('Registro Actualizado');
+      }).catch((err) => {
+          console.log(err);
+          this.message('Error al actualizar');
       })
   }
+
+  deleteItem = (id) =>{
+      if(window.confirm('¿Esta seguro de eliminar el registro?')){
+    db.collection('todos').doc(id).delete();
+      }
+  }
+
+  message = (message) =>{
+      this.setState({
+          fadeIn: true,
+          message: message
+      });
+
+      setTimeout(() =>{
+        this.setState({
+            fadeIn: false,
+            message: ""
+        })
+    }, 3000);
+  }
+
 
   render() {
     const { items, inputValue } = this.state;
@@ -58,11 +125,14 @@ export class Todos extends Component {
           <Col xs="2">
             <div className="text-center">
               <Button color="info" onClick={this.action}>
-                Agregar
+                {this.state.edit ? 'Editar' : 'Agregar'}
               </Button>
             </div>
           </Col>
         </Row>
+        <Fade in={this.state.fadeIn} tag="h6" className="mt-3 text-center text-success">
+            {this.state.message}
+        </Fade>
         <br/>
         <Table hover className="text-center">
           <thead>
@@ -78,10 +148,10 @@ export class Todos extends Component {
                   <tr key={key}>
                     <td>{item.data.item}</td>
                     <td>
-                      <Button color="warning">Editar</Button>
+                      <Button color="warning" onClick={ () => this.getToDo(item.id)}>Editar</Button>
                     </td>
                     <td>
-                      <Button color="danger">ELiminar</Button>
+                      <Button color="danger" onClick={ () => this.deleteItem(item.id)}>Eliminar</Button>
                     </td>
                   </tr>
                 ))
